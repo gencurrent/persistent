@@ -26,7 +26,7 @@ desc1 := persistent.ServiceDescriptor{2, persistent.loggingDefault, persistent.l
 desc2 := persistent.ServiceDescriptor{2, persistent.loggingDefault, persistent.loggingDefault, persistent.loggingDefault, persistent.loggingDefault}
 
 // Services themselves
-// (YourServiceStarterFunc1 is function with return type itnerface{}, error)
+// (YourServiceStarterFunc1 is function with return type interface{}, error)
 ser1 := persistent.NewService("ServiceOne", YourServiceStarterFunc1, desc1)
 ser2 := persistent.NewService("ServiceTwo", YourServiceStarterFunc2, desc2)
 
@@ -59,8 +59,8 @@ PASS
 
 ## BTW ##
 <details markdown="1">
-Contact me
-<summary>
 My first OpenSource, so, please, do not kick me hard (or Persistently)
-if have qustions, please send me an email: <gencurrent@gmail.com>
-</summary>
+
+if have qustions, please send me an email: gencurrent@gmail.com
+
+<summary>Contact me</summary>
