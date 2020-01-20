@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	// "github.com/gencurrent/persistent"
 )
 
 func PrintStuff() (interface{}, error) {
@@ -33,15 +32,14 @@ func PrintAndError() (interface{}, error) {
 	// return nil, nil
 }
 func TestAll(t *testing.T) {
-	desc1 := ServiceDescriptor{2, 0, 0, 0, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
-	desc2 := ServiceDescriptor{2, 0, 0, 0, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
-	desc3 := ServiceDescriptor{2, 2000, 0, 0, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
+	desc1 := ServiceDescriptor{2, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
+	desc2 := ServiceDescriptor{2, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
+	// desc3 := ServiceDescriptor{2, loggingDefault, loggingDefault, loggingDefault, loggingDefault}
 
-	ser1 := Service{"Service one", PrintStuff, desc1}
-	ser2 := Service{"Service two", PrintAndWait, desc2}
-	ser3 := Service{"Service three", PrintAndError, desc3}
+	ser1 := NewService("ServiceOne", PrintStuff, desc1)
+	ser2 := NewService("ServiceTwo", PrintAndWait, desc2)
+	// ser3 := Service{"Service three", PrintAndError, desc3}
 
-	bundle := ServiceBundle{[]Service{ser1, ser2, ser3}}
-
+	bundle := ServiceBundle{[]Service{ser1, ser2}}
 	bundle.Run()
 }

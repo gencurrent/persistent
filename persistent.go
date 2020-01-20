@@ -9,22 +9,22 @@ import (
 
 // Copied from logrus logging library
 const (
-	PanicLevel int = 0
+	PanicLevel int = iota
 	// FatalLevel level. Logs and then calls `logger.Exit(1)`. It will exit even if the
 	// logging level is set to Panic.
-	FatalLevel int = 1
+	FatalLevel
 	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
 	// Commonly used for hooks to send errors to an error tracking service.
-	ErrorLevel int = 2
+	ErrorLevel
 	// WarnLevel level. Non-critical entries that deserve eyes.
-	WarnLevel int = 3
+	WarnLevel
 	// InfoLevel level. General operational entries about what's going on inside the
 	// application.
-	InfoLevel int = 4
+	InfoLevel
 	// DebugLevel level. Usually only enabled when debugging. Very verbose logging.
-	DebugLevel int = 5
+	DebugLevel
 	// TraceLevel level. Designates finer-grained informational events than the Debug.
-	TraceLevel int = 6
+	TraceLevel
 )
 
 const (
@@ -32,6 +32,13 @@ const (
 	EventOnStart     string = "onStart"
 	EventOnStop      string = "onStop"
 	EventOnFail      string = "onFail"
+)
+
+const (
+	StatusNew int = iota
+	StatusRunning
+	StatusDone
+	StatusFail
 )
 
 type ServiceFunction func() (interface{}, error)
@@ -59,23 +66,37 @@ func loggingDefault(level int, eventType string, service *Service, message strin
 
 // Descriptor to use to describeevery service running behaviour
 type ServiceDescriptor struct {
-	FailuresToRestart       int             // how many times to tolerate continious failures to try before giving up
-	MSecondsToTolerate      int             // How much time to wait for a loop before starting new one
-	StartAfterToleration    int             // If servivce is running more than `LoopTimeOutMilliseconds`, then do not wait to start new one
-	MSecondsToStartNextLoop int             // When to start next loop even if everuthing is ok
-	OnToRestart             LoggingFunction // Event onToRestart
-	OnStart                 LoggingFunction // Event onStart
-	OnStop                  LoggingFunction // Event onStop
-	OnFail                  LoggingFunction // Event onToleration: the function failed to run until timeout
+	TimesToRestart int             // Times to tolerate continious failures to try before giving up. -1: restart always
+	OnToRestart       LoggingFunction // Event onToRestart
+	OnStart           LoggingFunction // Event onStart
+	OnStop            LoggingFunction // Event onStop
+	OnFail            LoggingFunction // Event onToleration: the function failed to run until timeout
 }
 
 // Every service running descriptor
 type Service struct {
-	Name       string
-	Function   ServiceFunction
-	Descriptor ServiceDescriptor
+	Name           string
+	Function       ServiceFunction
+	Descriptor     ServiceDescriptor
+	Status         int // One of persistent.go:34
+	TimesRestarted int // Times the service restarted at any reason
+	TimesHealed    int // Times the service had been restarted due to fails
+
 }
 
+// NewService creates services just with 3 arguments: {name, function, descriptor} 
+func NewService(name string, function ServiceFunction, descriptor ServiceDescriptor) Service {
+	return Service{
+		name,
+		function,
+		descriptor,
+		StatusNew,
+		0,
+		0,
+	}
+}
+
+// Just an array for services
 type ServiceBundle struct {
 	Services []Service
 }
@@ -98,16 +119,21 @@ func (bundle ServiceBundle) Run() {
 			startedTimes := 0
 			for true {
 				if startedTimes != 0 {
-					service.Descriptor.OnToRestart(InfoLevel, EventOnToRestart, &service, fmt.Sprintf("About to restart #%v time", startedTimes-1))
+					service.Descriptor.OnToRestart(InfoLevel, EventOnToRestart, &service, fmt.Sprintf("About to restart for the #%v time", startedTimes-1))
 				}
 				_, err := service.Function()
 				startedTimes++
 				if err != nil {
 					service.Descriptor.OnFail(WarnLevel, EventOnFail, &service, err.Error())
 				}
+				if service.Descriptor.TimesToRestart != -1 {
+					if startedTimes > service.Descriptor.TimesToRestart - 1{
+						break
+					}
+				}
 
 			}
-			service.Descriptor.OnStop(InfoLevel, EventOnStop, &service, "Success")
+			service.Descriptor.OnStop(InfoLevel, EventOnStop, &service, "Stopped")
 		}(i, &waitGroup)
 	}
 	waitGroup.Wait()
